@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard - Universal Services</title>
+<link rel="icon" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="dash-wrap" id="content" style="display:none;">
+  <div class="welcome-card">
+    <h2>Welcome, <span id="welcome-name"></span>!</h2>
+    <p>Manage your bookings and profile from here.</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><h4>Total Bookings</h4><div class="num" id="stat-total">0</div></div>
+    <div class="stat-card"><h4>Pending</h4><div class="num" id="stat-pending">0</div></div>
+    <div class="stat-card"><h4>Confirmed</h4><div class="num" id="stat-confirmed">0</div></div>
+  </div>
+
+  <div class="dash-grid">
+    <div class="panel">
+      <h3>My Bookings</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Service</th><th>Date</th><th>Message</th><th>Status</th></tr></thead>
+          <tbody id="bookings-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>My Profile</h3>
+      <div class="panel-row"><span>Name</span><strong id="p-name"></strong></div>
+      <div class="panel-row"><span>Mobile</span><strong id="p-mobile"></strong></div>
+      <div class="panel-row"><span>Email</span><strong id="p-email"></strong></div>
+      <button class="btn mt-30" style="width:100%;" onclick="logout(event)">Logout</button>
+    </div>
+  </div>
+</div>
+
+<div id="footer"></div>
+
+<script src="app.js"></script>
+<script>
+  renderNavbar();
+  renderFooter();
+
+  (async () => {
+    const me = await getMe();
+    if (!me) { window.location.href = 'login.html'; return; }
+
+    document.getElementById('content').style.display = '';
+    document.getElementById('welcome-name').textContent = me.name;
+    document.getElementById('p-name').textContent = me.name;
+    document.getElementById('p-mobile').textContent = me.mobile;
+    document.getElementById('p-email').textContent = me.email;
+
+    const r = await api('/api/my-bookings');
+    const bookings = r.data.bookings || [];
+    document.getElementById('stat-total').textContent = bookings.length;
+    document.getElementById('stat-pending').textContent = bookings.filter(b => b.status === 'Pending').length;
+    document.getElementById('stat-confirmed').textContent = bookings.filter(b => b.status === 'Confirmed').length;
+
+    const body = document.getElementById('bookings-body');
+    if (bookings.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#6b7280;padding:30px;">No bookings yet. <a href="services.html" style="color:#e94560;">Browse services</a></td></tr>';
+    } else {
+      body.innerHTML = bookings.map(b => `
+        <tr>
+          <td>${b.service_name}</td>
+          <td>${b.preferred_date || '-'}</td>
+          <td>${b.message || '-'}</td>
+          <td><span class="status ${b.status}">${b.status}</span></td>
+        </tr>
+      `).join('');
+    }
+  })();
+</script>
+</body>
+</html>

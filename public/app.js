@@ -151,9 +151,9 @@ function buildFooter() {
       </div>
       <div>
         <h4>Contact</h4>
-        <p>123 Main Street<br>City Center, India</p>
-        <p>+91 98765 43210</p>
-        <p>support@universalservices.com</p>
+        <p>Gorakhpur<br>Uttar Pradesh</p>
+        <p>+91 63065 84463</p>
+        <p>universalservicesbharat@gamil.com</p>
       </div>
       <div>
         <h4>Quick Links</h4>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Services - Your One Stop Solution</title>
+<link rel="icon" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="navbar"></div>
+
+<section class="hero">
+  <h1>Find <span>Trusted Services</span> Near You</h1>
+  <p>From home repairs and beauty to travel, finance and more — book 65+ professional services with one tap.</p>
+  <div class="search-box">
+    <input type="text" id="hero-search" placeholder="Try 'plumbing', 'travel', 'salon'...">
+    <button onclick="goSearch()">Search</button>
+  </div>
+</section>
+
+<section class="section" id="featured">
+  <h2>Featured Services</h2>
+  <p class="subhead">Handpicked picks loved by our customers</p>
+  <div class="grid" id="featured-grid"></div>
+  <div class="text-center mt-30">
+    <a href="services.html" class="btn">View All Services</a>
+  </div>
+</section>
+
+<section class="section" id="about">
+  <h2>About Us</h2>
+  <p class="subhead" style="max-width:800px;margin:0 auto 20px;">Universal Services is a trusted marketplace bringing together verified professionals across travel, home services, technology, finance, health, events and more — making your everyday life easier.</p>
+</section>
+
+<div id="footer"></div>
+
+<script src="services-data.js"></script>
+<script src="app.js"></script>
+<script>
+  renderNavbar('home');
+  renderFooter();
+  document.getElementById('featured-grid').innerHTML = SERVICES.slice(0, 12).map(serviceCardHTML).join('');
+  document.getElementById('hero-search').addEventListener('keydown', e => { if (e.key === 'Enter') goSearch(); });
+  function goSearch() {
+    const q = document.getElementById('hero-search').value.trim();
+    window.location.href = 'services.html' + (q ? ('?q=' + encodeURIComponent(q)) : '');
+  }
+</script>
+</body>
+</html>

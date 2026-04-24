@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel - Universal Services</title>
+<link rel="icon" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="navbar"></div>
+
+<!-- LOGIN -->
+<div id="admin-login" class="form-wrap" style="display:none;">
+  <h2>Admin Login</h2>
+  <p class="subhead">Restricted Access</p>
+  <form id="admin-login-form">
+    <div class="form-group"><label>Username</label><input type="text" id="adm-user" required></div>
+    <div class="form-group"><label>Password</label><input type="password" id="adm-pass" required></div>
+    <div class="error-msg" id="adm-err"></div>
+    <button type="submit" class="btn" style="width:100%;">Login</button>
+  </form>
+</div>
+
+<!-- PANEL -->
+<div class="dash-wrap" id="admin-panel" style="display:none;">
+  <div class="welcome-card">
+    <h2>Admin Panel</h2>
+    <p>Manage bookings and registered users.</p>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><h4>Total Users</h4><div class="num" id="s-users">0</div></div>
+    <div class="stat-card"><h4>Total Bookings</h4><div class="num" id="s-bookings">0</div></div>
+    <div class="stat-card"><h4>Pending</h4><div class="num" id="s-pending">0</div></div>
+    <div class="stat-card"><h4>Confirmed</h4><div class="num" id="s-confirmed">0</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="bookings">All Bookings</button>
+    <button class="tab-btn" data-tab="users">All Users</button>
+    <button class="tab-btn" onclick="adminLogout()" style="margin-left:auto;background:#e94560;color:#fff;border-color:#e94560;">Logout</button>
+  </div>
+
+  <div id="tab-bookings" class="tab-content active panel">
+    <div class="toolbar">
+      <input type="text" id="bk-search" placeholder="Search by customer or service...">
+      <select id="bk-filter">
+        <option value="All">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Confirmed">Confirmed</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Customer</th><th>Mobile</th><th>Service</th><th>Date</th><th>Message</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="bk-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-users" class="tab-content panel">
+    <div class="toolbar">
+      <input type="text" id="usr-search" placeholder="Search by name or email...">
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Mobile</th><th>Email</th><th>Password (encrypted)</th><th>Registered</th></tr></thead>
+        <tbody id="usr-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="footer"></div>
+
+<script src="app.js"></script>
+<script>
+  renderNavbar();
+  renderFooter();
+
+  let allBookings = [], allUsers = [];
+
+  (async () => {
+    const r = await api('/api/admin/stats');
+    if (r.ok) showPanel(r.data); else showLogin();
+  })();
+
+  function showLogin() {
+    document.getElementById('admin-login').style.display = '';
+    document.getElementById('admin-panel').style.display = 'none';
+  }
+  function showPanel(stats) {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-panel').style.display = '';
+    document.getElementById('s-users').textContent = stats.totalUsers;
+    document.getElementById('s-bookings').textContent = stats.totalBookings;
+    document.getElementById('s-pending').textContent = stats.pending;
+    document.getElementById('s-confirmed').textContent = stats.confirmed;
+    loadBookings();
+    loadUsers();
+  }
+
+  document.getElementById('admin-login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const username = document.getElementById('adm-user').value.trim();
+    const password = document.getElementById('adm-pass').value;
+    const err = document.getElementById('adm-err');
+    err.textContent = '';
+    const r = await api('/api/admin/login', { method: 'POST', body: { username, password } });
+    if (!r.ok) return err.textContent = r.data.error || 'Login failed';
+    const s = await api('/api/admin/stats');
+    showPanel(s.data);
+  });
+
+  async function adminLogout() {
+    await api('/api/logout', { method: 'POST' });
+    window.location.reload();
+  }
+
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  async function loadBookings() {
+    const r = await api('/api/admin/bookings');
+    allBookings = r.data.bookings || [];
+    renderBookings();
+  }
+  async function loadUsers() {
+    const r = await api('/api/admin/users');
+    allUsers = r.data.users || [];
+    renderUsers();
+  }
+
+  document.getElementById('bk-search').addEventListener('input', renderBookings);
+  document.getElementById('bk-filter').addEventListener('change', renderBookings);
+  document.getElementById('usr-search').addEventListener('input', renderUsers);
+
+  function renderBookings() {
+    const q = document.getElementById('bk-search').value.toLowerCase().trim();
+    const f = document.getElementById('bk-filter').value;
+    const list = allBookings.filter(b => {
+      const okQ = !q || b.customer_name.toLowerCase().includes(q) || b.service_name.toLowerCase().includes(q);
+      const okF = f === 'All' || b.status === f;
+      return okQ && okF;
+    });
+    const body = document.getElementById('bk-body');
+    if (!list.length) { body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6b7280;padding:25px;">No bookings found</td></tr>'; return; }
+    body.innerHTML = list.map(b => `
+      <tr>
+        <td>${b.id}</td>
+        <td>${b.customer_name}</td>
+        <td>${b.mobile}</td>
+        <td>${b.service_name}</td>
+        <td>${b.preferred_date || '-'}</td>
+        <td>${b.message || '-'}</td>
+        <td><span class="status ${b.status}">${b.status}</span></td>
+        <td>
+          <select class="status-select" id="sel-${b.id}">
+            <option ${b.status==='Pending'?'selected':''}>Pending</option>
+            <option ${b.status==='Confirmed'?'selected':''}>Confirmed</option>
+            <option ${b.status==='Completed'?'selected':''}>Completed</option>
+          </select>
+          <button class="btn-sm" onclick="saveStatus(${b.id})">Save</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function renderUsers() {
+    const q = document.getElementById('usr-search').value.toLowerCase().trim();
+    const list = allUsers.filter(u => !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q));
+    const body = document.getElementById('usr-body');
+    if (!list.length) { body.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#6b7280;padding:25px;">No users found</td></tr>'; return; }
+    body.innerHTML = list.map(u => `
+      <tr><td>${u.id}</td><td>${u.name}</td><td>${u.mobile}</td><td>${u.email}</td><td style="font-family:monospace;font-size:11px;color:#6b7280;max-width:240px;overflow:hidden;text-overflow:ellipsis;" title="${u.password||''}">${u.password ? u.password.slice(0,28)+'…' : '-'}</td><td>${new Date(u.created_at).toLocaleDateString()}</td></tr>
+    `).join('');
+  }
+
+  async function saveStatus(id) {
+    const status = document.getElementById('sel-' + id).value;
+    const r = await api('/api/admin/booking/' + id, { method: 'PUT', body: { status } });
+    if (r.ok) { await loadBookings(); const s = await api('/api/admin/stats'); if (s.ok) showPanel(s.data); }
+  }
+</script>
+</body>
+</html>

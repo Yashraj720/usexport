@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register - Universal Services</title>
+<link rel="icon" href="logo.png">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="navbar"></div>
+
+<div class="form-wrap">
+  <h2>Create Account</h2>
+  <p class="subhead">Join Universal Services today</p>
+  <form id="register-form" novalidate>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="name" required>
+    </div>
+    <div class="form-group">
+      <label>Mobile Number</label>
+      <input type="tel" id="mobile" maxlength="10" required>
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="email" required>
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="password" required>
+      <button type="button" class="toggle-pw" onclick="togglePw('password', this)">Show</button>
+    </div>
+    <div class="form-group">
+      <label>Confirm Password</label>
+      <input type="password" id="confirm" required>
+      <button type="button" class="toggle-pw" onclick="togglePw('confirm', this)">Show</button>
+    </div>
+    <div class="error-msg" id="err"></div>
+    <button type="submit" class="btn" style="width:100%;">Register</button>
+    <p class="form-foot">Already have an account? <a href="login.html">Login here</a></p>
+  </form>
+</div>
+
+<div id="footer"></div>
+
+<script src="app.js"></script>
+<script>
+  renderNavbar();
+  renderFooter();
+
+  function togglePw(id, btn) {
+    const i = document.getElementById(id);
+    const isPw = i.type === 'password';
+    i.type = isPw ? 'text' : 'password';
+    btn.textContent = isPw ? 'Hide' : 'Show';
+  }
+
+  document.getElementById('mobile').addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0, 10);
+  });
+
+  document.getElementById('register-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const name = document.getElementById('name').value.trim();
+    const mobile = document.getElementById('mobile').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm').value;
+    const err = document.getElementById('err');
+    err.textContent = '';
+
+    if (!name || !mobile || !email || !password) return err.textContent = 'All fields are required';
+    if (!/^\d{10}$/.test(mobile)) return err.textContent = 'Mobile must be exactly 10 digits';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return err.textContent = 'Please enter a valid email';
+    if (password.length < 8) return err.textContent = 'Password must be at least 8 characters';
+    if (password !== confirm) return err.textContent = 'Passwords do not match';
+
+    const r = await api('/api/register', { method: 'POST', body: { name, mobile, email, password } });
+    if (!r.ok) return err.textContent = r.data.error || 'Registration failed';
+    window.location.href = 'login.html?registered=1';
+  });
+</script>
+</body>
+</html>
